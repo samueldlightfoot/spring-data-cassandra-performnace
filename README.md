@@ -1,5 +1,7 @@
 # Reproducing cassandra insert performance problem with spring-data
 
+https://stackoverflow.com/questions/69772144/spring-data-cassandra-reactive-improve-perfromance-of-reactivecrudrepository-sav
+
 Run docker-compose up (start local cassandra)
 
 Run SpringDataCassandraPerformanceApplication
