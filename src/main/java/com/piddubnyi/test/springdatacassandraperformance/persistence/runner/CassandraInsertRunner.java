@@ -54,8 +54,8 @@ public class CassandraInsertRunner implements SmartLifecycle {
             return state;
         });
         subscription = data
-            .flatMap((SnapshotRecord record) -> repository.saveViaCql(cqlOps, record))
-    //                .flatMap(repository::save)
+            .flatMap((SnapshotRecord record) -> repository.saveViaCql(cqlOps, record), 512, 2048)
+//                    .flatMap(repository::save, 512, 2048)
             .doOnNext(d -> success.incrementAndGet())
             .onErrorContinue((throwable, object) -> fail.incrementAndGet())
             //.subscribeOn(Schedulers.boundedElastic())
