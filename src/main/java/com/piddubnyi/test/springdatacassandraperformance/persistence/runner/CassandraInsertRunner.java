@@ -2,6 +2,7 @@ package com.piddubnyi.test.springdatacassandraperformance.persistence.runner;
 
 import com.piddubnyi.test.springdatacassandraperformance.persistence.model.SnapshotRecord;
 import com.piddubnyi.test.springdatacassandraperformance.persistence.repository.SnapshotRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.data.cassandra.core.ReactiveCassandraTemplate;
@@ -17,6 +18,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+@Slf4j
 @Component
 public class CassandraInsertRunner implements SmartLifecycle {
 
@@ -37,6 +39,8 @@ public class CassandraInsertRunner implements SmartLifecycle {
     public CassandraInsertRunner(SnapshotRepository repository, ReactiveCassandraTemplate cassandraTemplate) {
         this.repository = repository;
         this.cqlOps = cassandraTemplate.getReactiveCqlOperations();
+        cassandraTemplate.setUsePreparedStatements(true);
+        log.info("Use prep st = true");
     }
 
     @Override
@@ -44,22 +48,21 @@ public class CassandraInsertRunner implements SmartLifecycle {
         Flux<SnapshotRecord> data = Flux.generate(Object::new, (state, sink) -> {
             ThreadLocalRandom random = ThreadLocalRandom.current();
             sink.next(
-                new SnapshotRecord(
-                    random.nextLong(),
-                    (short) random.nextInt(),
-                    Clock.systemUTC().instant(),
-                    random.nextDouble()
-                )
+                    new SnapshotRecord(
+                            random.nextLong(),
+                            (short) random.nextInt(),
+                            Clock.systemUTC().instant(),
+                            random.nextDouble()
+                    )
             );
             return state;
         });
         subscription = data
-            .flatMap((SnapshotRecord record) -> repository.saveViaCql(cqlOps, record), 512, 2048)
-//                    .flatMap(repository::save, 512, 2048)
-            .doOnNext(d -> success.incrementAndGet())
-            .onErrorContinue((throwable, object) -> fail.incrementAndGet())
-            //.subscribeOn(Schedulers.boundedElastic())
-            .subscribe();
+                .flatMap((SnapshotRecord record) -> repository.saveViaCql(cqlOps, record), 512, 2048)
+                //.flatMap(repository::save, 512, 2048)
+                .doOnNext(d -> success.incrementAndGet())
+                .onErrorContinue((throwable, object) -> fail.incrementAndGet())
+                .subscribe();
     }
 
     @Override
